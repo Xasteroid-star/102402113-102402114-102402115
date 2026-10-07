@@ -57,14 +57,18 @@
       .replace(/'/g, '&#39;');
   }
 
-  // 关键词高亮：先整体转义再包裹 <mark>，防止关键词注入 XSS
+  // 关键词高亮：先按关键词把原文切开，再逐段转义并包裹 <mark>，防止关键词注入 XSS。
+  // 不能写成「先整体转义、再在转义结果里 replace」——那样插入的 <mark> 会落在
+  // HTML 实体中间，把 &#39; 劈成 &#3<mark>9</mark>; ，实体失效后用户看到的是转义原文。
   function highlight(text, kw) {
-    const safe = escapeHtml(text);
+    const raw = String(text == null ? '' : text);
     const q = String(kw == null ? '' : kw).trim();
-    if (!q) return safe;
-    const qEsc = escapeHtml(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const re = new RegExp(qEsc, 'gi');
-    return safe.replace(re, function (m) { return '<mark>' + m + '</mark>'; });
+    if (!q) return escapeHtml(raw);
+    const qEsc = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // 捕获组让 split 把命中的关键词留在结果的奇数下标上
+    return raw.split(new RegExp('(' + qEsc + ')', 'gi')).map(function (part, i) {
+      return i % 2 ? '<mark>' + escapeHtml(part) + '</mark>' : escapeHtml(part);
+    }).join('');
   }
 
   // 发布表单字段长度上限（前后端共用，拦住超长内容污染列表与详情页）
