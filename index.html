@@ -66,7 +66,10 @@
             listEl.innerHTML = '<div class="empty"><div class="empty-ico">🍀</div><div class="empty-title">暂无相关信息</div><div class="empty-sub">发布一条寻物或招领信息吧</div></div>';
             return;
           }
-          listEl.innerHTML = items.map(UI.itemCard).join('');
+          // 注意：这里不能写 items.map(UI.itemCard) —— map 会把数组下标当作
+          // itemCard 的第二个参数 keyword 传进去，导致标题里的数字被高亮，
+          // 甚至劈开 HTML 实体（&#39; → &#3<mark>9</mark>;）把转义字符显示给用户。
+          listEl.innerHTML = items.map(function (it) { return UI.itemCard(it); }).join('');
         })
         .catch(function (e) {
           listEl.innerHTML = '<div class="empty"><div class="empty-ico">⚠️</div><div class="empty-title">加载失败</div><div class="empty-sub">' + Core.escapeHtml(e.message) + '</div></div>';
