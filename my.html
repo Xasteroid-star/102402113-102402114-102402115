@@ -12,7 +12,7 @@
 <body>
 <div class="stage">
   <div class="phone">
-    <div class="statusbar"><span>9:41</span><span class="dot"></span></div>
+    <div class="statusbar"><span id="status-time">9:41</span><span class="dot"></span></div>
 
     <div class="navbar"><div class="sp"></div><div class="title">我的发布</div><div class="sp"></div></div>
 
@@ -137,5 +137,17 @@
     load();
   })();
 </script>
+
+<script>
+  (function updateStatusTime() {
+    var now = new Date();
+    var hh = String(now.getHours()).padStart(2, '0');
+    var mm = String(now.getMinutes()).padStart(2, '0');
+    var timeEl = document.getElementById('status-time');
+    if (timeEl) timeEl.textContent = hh + ':' + mm;
+    setTimeout(updateStatusTime, 60000);
+  })();
+</script>
+
 </body>
 </html>

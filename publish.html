@@ -12,7 +12,7 @@
 <body>
 <div class="stage">
   <div class="phone">
-    <div class="statusbar"><span>9:41</span><span class="dot"></span></div>
+    <div class="statusbar"><span id="status-time">9:41</span><span class="dot"></span></div>
 
     <div class="navbar"><a class="back" href="javascript:history.back()">‹</a><div class="title">发布信息</div><div class="sp"></div></div>
 
@@ -155,5 +155,17 @@
     document.getElementById('goHome').addEventListener('click', function () { location.href = 'index.html'; });
   })();
 </script>
+
+<script>
+  (function updateStatusTime() {
+    var now = new Date();
+    var hh = String(now.getHours()).padStart(2, '0');
+    var mm = String(now.getMinutes()).padStart(2, '0');
+    var timeEl = document.getElementById('status-time');
+    if (timeEl) timeEl.textContent = hh + ':' + mm;
+    setTimeout(updateStatusTime, 60000);
+  })();
+</script>
+
 </body>
 </html>

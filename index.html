@@ -12,7 +12,7 @@
 <body>
 <div class="stage">
   <div class="phone">
-    <div class="statusbar"><span>9:41</span><span class="dot"></span></div>
+   <div class="statusbar"><span id="status-time">9:41</span><span class="dot"></span></div>
 
     <div class="homehead">
       <div class="logo">🍀</div>
@@ -85,5 +85,19 @@
     render();
   })();
 </script>
+
+<script>
+  // 实时更新状态栏时间
+  (function updateStatusTime() {
+    var now = new Date();
+    var hh = String(now.getHours()).padStart(2, '0');
+    var mm = String(now.getMinutes()).padStart(2, '0');
+    var timeStr = hh + ':' + mm;
+    var timeEl = document.getElementById('status-time');
+    if (timeEl) timeEl.textContent = timeStr;
+    setTimeout(updateStatusTime, 60000);
+  })();
+</script>
+
 </body>
 </html>
