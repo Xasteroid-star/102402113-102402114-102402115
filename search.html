@@ -70,25 +70,27 @@
         var heat = i < 2 ? '<span class="heat">热</span>' : '';
         return '<div class="h" data-kw="' + Core.escapeHtml(k) + '"><span class="rk">' + (i + 1) + '</span><span class="nm">' + Core.escapeHtml(k) + '</span>' + heat + '<span class="act">搜索</span></div>';
       }).join('');
-
-
-      
-      historyChips.querySelectorAll('.c').forEach(function (b) { 
-        b.addEventListener('click', function () { doSearch(b.dataset.kw); }); 
-      });
-
-      historyChips.querySelectorAll('.del-history').forEach(function (delBtn) {
-        delBtn.addEventListener('click', function (e) {
-          e.stopPropagation(); 
-          var kwToDelete = delBtn.dataset.del;
-          var h = getHistory().filter(function (k) { return k !== kwToDelete; });
-          setHistory(h);
-          renderDefault(); 
-        });
-      });
-
-
     }
+
+    // 事件委托：监听器只绑一次，绑在「不会被重建」的父容器上。
+    // renderDefault() 会反复重绘 chips / 热门行，若在渲染时逐个绑监听，
+    // 一旦重绘就会整批丢失（历史 chips 每次重建、热门行少绑一次都会导致点击无反应）。
+    historyChips.addEventListener('click', function (e) {
+      var del = e.target.closest('.del-history');
+      if (del) {                                   // 先判删除，它在 chip 内部
+        e.stopPropagation();
+        setHistory(getHistory().filter(function (k) { return k !== del.dataset.del; }));
+        renderDefault();
+        return;
+      }
+      var chip = e.target.closest('.c');
+      if (chip) doSearch(chip.dataset.kw);
+    });
+
+    hotList.addEventListener('click', function (e) {
+      var row = e.target.closest('.h');
+      if (row) doSearch(row.dataset.kw);
+    });
 
     function doSearch(kw) {
       kw = String(kw || '').trim();
@@ -116,7 +118,7 @@
 
     function showDefault() {
       input.value = '';
-      defaultEl.style.display = '';
+      defaultEl.style.display = 'flex';   // 与初始状态一致（内联样式是 display:flex），置空会退化成 block
       resultEl.style.display = 'none';
       renderDefault();
     }
