@@ -17,11 +17,22 @@
   async function request(method, url, body) {
     const opt = { method: method, headers: { 'Content-Type': 'application/json' } };
     if (body !== undefined) opt.body = JSON.stringify(body);
-    const res = await fetch(url, opt);
+
+    // fetch 只在「根本没连上」时 reject（后端没启动 / 断网 / DNS 失败），
+    // 这里统一翻译成中文，避免各页面把 "Failed to fetch" 直接抛给用户。
+    let res;
+    try {
+      res = await fetch(url, opt);
+    } catch (e) {
+      const err = new Error('网络异常，请稍后重试');
+      err.offline = true;
+      throw err;
+    }
+
     let data = null;
     try { data = await res.json(); } catch (e) { data = null; }
     if (!res.ok) {
-      const err = new Error((data && data.error) || ('请求失败 ' + res.status));
+      const err = new Error((data && data.error) || ('请求失败（HTTP ' + res.status + '）'));
       err.status = res.status;
       err.errors = data && data.errors;
       throw err;
