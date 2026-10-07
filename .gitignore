@@ -1,5 +1,10 @@
 node_modules/
+package-lock.json
 .DS_Store
 Thumbs.db
 *.log
 .vscode/
+
+# 博客素材：成果走查截图（CDP 自动抓取，发布时上传到博客园图床，不入库）
+screenshots/
+

@@ -52,6 +52,7 @@
     var resultList = document.getElementById('resultList');
 
     var HOT = ['校园卡', '宿舍钥匙', '雨伞', '蓝牙耳机', '水杯'];
+    var searchToken = 0;   // 搜索竞态保护，见 doSearch
 
     function getHistory() { try { return JSON.parse(localStorage.getItem('searchHistory') || '[]'); } catch (e) { return []; } }
     function setHistory(a) { localStorage.setItem('searchHistory', JSON.stringify(a)); }
@@ -70,25 +71,27 @@
         var heat = i < 2 ? '<span class="heat">热</span>' : '';
         return '<div class="h" data-kw="' + Core.escapeHtml(k) + '"><span class="rk">' + (i + 1) + '</span><span class="nm">' + Core.escapeHtml(k) + '</span>' + heat + '<span class="act">搜索</span></div>';
       }).join('');
-
-
-      
-      historyChips.querySelectorAll('.c').forEach(function (b) { 
-        b.addEventListener('click', function () { doSearch(b.dataset.kw); }); 
-      });
-
-      historyChips.querySelectorAll('.del-history').forEach(function (delBtn) {
-        delBtn.addEventListener('click', function (e) {
-          e.stopPropagation(); 
-          var kwToDelete = delBtn.dataset.del;
-          var h = getHistory().filter(function (k) { return k !== kwToDelete; });
-          setHistory(h);
-          renderDefault(); 
-        });
-      });
-
-
     }
+
+    // 事件委托：监听器只绑一次，绑在「不会被重建」的父容器上。
+    // renderDefault() 会反复重绘 chips / 热门行，若在渲染时逐个绑监听，
+    // 一旦重绘就会整批丢失（历史 chips 每次重建、热门行少绑一次都会导致点击无反应）。
+    historyChips.addEventListener('click', function (e) {
+      var del = e.target.closest('.del-history');
+      if (del) {                                   // 先判删除，它在 chip 内部
+        e.stopPropagation();
+        setHistory(getHistory().filter(function (k) { return k !== del.dataset.del; }));
+        renderDefault();
+        return;
+      }
+      var chip = e.target.closest('.c');
+      if (chip) doSearch(chip.dataset.kw);
+    });
+
+    hotList.addEventListener('click', function (e) {
+      var row = e.target.closest('.h');
+      if (row) doSearch(row.dataset.kw);
+    });
 
     function doSearch(kw) {
       kw = String(kw || '').trim();
@@ -102,21 +105,26 @@
       resultEl.style.display = 'flex';
       resultList.innerHTML = '<div class="empty"><div class="empty-ico">🔍</div><div class="empty-title">搜索中…</div></div>';
 
+      // 竞态保护：连续改关键词时，先发出的请求可能后返回，
+      // 用 token 丢弃过期响应，避免结果被旧数据覆盖。
+      var token = ++searchToken;
       API.list({ q: kw }).then(function (items) {
+        if (token !== searchToken) return;
         resultMeta.innerHTML = '找到 <b>' + items.length + '</b> 条相关信息';
         if (!items.length) {
           resultList.innerHTML = '<div class="empty"><div class="empty-ico">🔍</div><div class="empty-title">未找到相关信息</div><div class="empty-sub">换个关键词试试，如「校园卡」「钥匙」</div></div>';
           return;
         }
         resultList.innerHTML = items.map(function (it) { return UI.itemCard(it, kw); }).join('');
-      }).catch(function () {
-        resultList.innerHTML = '<div class="empty"><div class="empty-ico">⚠️</div><div class="empty-title">搜索失败</div></div>';
+      }).catch(function (e) {
+        if (token !== searchToken) return;
+        resultList.innerHTML = '<div class="empty"><div class="empty-ico">⚠️</div><div class="empty-title">搜索失败</div><div class="empty-sub">' + Core.escapeHtml(e.message) + '</div></div>';
       });
     }
 
     function showDefault() {
       input.value = '';
-      defaultEl.style.display = '';
+      defaultEl.style.display = 'flex';   // 与初始状态一致（内联样式是 display:flex），置空会退化成 block
       resultEl.style.display = 'none';
       renderDefault();
     }

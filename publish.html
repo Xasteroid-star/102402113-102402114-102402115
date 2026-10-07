@@ -17,11 +17,12 @@
     <div class="navbar"><a class="back" href="javascript:history.back()">‹</a><div class="title">发布信息</div><div class="sp"></div></div>
 
     <form class="form" id="publishForm" novalidate>
-      <div class="field"><label>类型</label>
+      <div class="field"><label>类型 <em>*</em></label>
         <div class="seg" id="typeSwitch">
           <button type="button" class="alt2 on" data-type="lost">寻物</button>
           <button type="button" class="alt" data-type="found">招领</button>
         </div>
+        <span class="errmsg" id="err-type"></span>
       </div>
 
       <div class="field"><label>物品照片 <span style="color:var(--faint);font-weight:400">（选填）</span></label>
@@ -43,6 +44,7 @@
           <button type="button" class="c" data-cat="图书">图书</button>
           <button type="button" class="c" data-cat="其他">其他</button>
         </div>
+        <span class="errmsg" id="err-category"></span>
       </div>
 
       <div class="field"><label>地点与时间 <em>*</em></label>
@@ -50,11 +52,13 @@
           <input class="inp" name="location" placeholder="如：三教 201">
           <input class="inp" name="time" placeholder="如：10-02 09:30">
         </div>
-        <span class="errmsg" id="err-loc"></span>
+        <span class="errmsg" id="err-location"></span>
+        <span class="errmsg" id="err-time"></span>
       </div>
 
       <div class="field"><label>详细描述 <span style="color:var(--faint);font-weight:400">（选填）</span></label>
         <textarea class="inp" name="description" placeholder="补充特征，如颜色、品牌、有无挂件…"></textarea>
+        <span class="errmsg" id="err-description"></span>
       </div>
 
       <div class="field"><label>联系方式 <em>*</em></label>
@@ -62,7 +66,14 @@
         <span class="errmsg" id="err-contact"></span>
       </div>
 
-      <button type="submit" class="submit">立即发布</button>
+      <div class="field"><label>昵称与学院 <span style="color:var(--faint);font-weight:400">（选填，仅用于展示）</span></label>
+        <div class="row2">
+          <input class="inp" name="publisherName" placeholder="如：李同学">
+          <input class="inp" name="dept" placeholder="如：计算机学院">
+        </div>
+      </div>
+
+      <button type="submit" class="submit" id="submitBtn">立即发布</button>
     </form>
 
     <div class="overlay" id="successOverlay">
@@ -115,39 +126,75 @@
       form.querySelectorAll('.errmsg').forEach(function (x) { x.textContent = ''; });
     }
 
-    function mark(name, slotId, msg) {
-      var input = form.querySelector('[name="' + name + '"]');
-      if (input) input.classList.add('error');
-      var slot = document.getElementById(slotId);
-      if (slot) slot.textContent = msg;
+    function val(name) {
+      var el = form.elements[name];
+      return el ? String(el.value) : '';
+    }
+
+    // 字段名 → 错误提示槽位（DOM id）
+    var SLOT = {
+      type: 'err-type', category: 'err-category', title: 'err-title',
+      location: 'err-location', time: 'err-time',
+      description: 'err-description', contact: 'err-contact'
+    };
+
+    // 逐项回填错误：前端校验（Core.validatePublish）与后端 400 的 errors 结构一致，共用一份
+    function showErrors(errors) {
+      var pending = [];
+      Object.keys(errors).forEach(function (name) {
+        var input = form.elements[name];
+        if (input) input.classList.add('error');
+        var slot = document.getElementById(SLOT[name]);
+        if (slot) slot.textContent = errors[name];
+        else pending.push(errors[name]);   // 没有对应槽位的（如 type）用 Toast 兜底
+      });
+      if (pending.length) UI.toast(pending.join('；'));
+      return pending.length === 0;
+    }
+
+    var submitting = false;
+    var submitBtn = document.getElementById('submitBtn');
+
+    function setSubmitting(on) {
+      submitting = on;
+      submitBtn.disabled = on;
+      submitBtn.textContent = on ? '发布中…' : '立即发布';
     }
 
     form.addEventListener('submit', function (e) {
       e.preventDefault();
+      if (submitting) return;               // 防重复提交
       clearErrors();
+
       var data = {
         type: selectedType,
-        title: form.title.value,
+        title: val('title'),
         category: selectedCategory,
-        location: form.location.value,
-        time: form.time.value,
-        description: form.description.value,
-        contact: form.contact.value,
-        publisher: UI.uid()
+        location: val('location'),
+        time: val('time'),
+        description: val('description'),
+        contact: val('contact'),
+        publisherName: val('publisherName'),
+        dept: val('dept'),
+        publisher: UI.uid()                 // 无登录方案：localStorage 里的匿名 uid
       };
+
       var v = Core.validatePublish(data);
       if (!v.ok) {
-        if (v.errors.title) mark('title', 'err-title', v.errors.title);
-        if (v.errors.location || v.errors.time) { mark('location', 'err-loc', '请填写地点和时间'); mark('time', 'err-loc', '请填写地点和时间'); }
-        if (v.errors.contact) mark('contact', 'err-contact', v.errors.contact);
-        if (v.errors.type) UI.toast(v.errors.type);
-        if (v.errors.category) UI.toast(v.errors.category);
+        showErrors(v.errors);
+        UI.toast('请先补全带 * 的必填项');
         return;
       }
+
+      setSubmitting(true);
       API.publish(data).then(function () {
         overlay.classList.add('on');
       }).catch(function (err) {
+        // 400：服务端二次校验失败 → 逐项回填；网络/5xx → 直接提示
+        if (err.errors) showErrors(err.errors);
         UI.toast(err.message || '发布失败');
+      }).then(function () {
+        setSubmitting(false);
       });
     });
 
