@@ -67,16 +67,39 @@
     return safe.replace(re, function (m) { return '<mark>' + m + '</mark>'; });
   }
 
-  // 校验发布表单：返回 { ok, errors }，errors 键对应必填字段
+  // 发布表单字段长度上限（前后端共用，拦住超长内容污染列表与详情页）
+  const LIMITS = { title: 40, location: 60, time: 40, contact: 60, description: 300 };
+
+  // 校验发布表单：返回 { ok, errors }，errors 键对应字段名（前端逐项回填、后端 400 复用）
   function validatePublish(form) {
     const errors = {};
     form = form || {};
-    if (!String(form.title == null ? '' : form.title).trim()) errors.title = '请填写物品名称';
-    if (!String(form.contact == null ? '' : form.contact).trim()) errors.contact = '请填写联系方式';
+    const str = function (v) { return String(v == null ? '' : v).trim(); };
+    const title = str(form.title);
+    const contact = str(form.contact);
+    const category = str(form.category);
+    const location = str(form.location);
+    const time = str(form.time);
+    const description = str(form.description);
+
+    if (!title) errors.title = '请填写物品名称';
+    else if (title.length > LIMITS.title) errors.title = '物品名称不超过 ' + LIMITS.title + ' 个字';
+
+    if (!contact) errors.contact = '请填写联系方式';
+    else if (contact.length > LIMITS.contact) errors.contact = '联系方式不超过 ' + LIMITS.contact + ' 个字符';
+
     if (form.type !== 'lost' && form.type !== 'found') errors.type = '请选择寻物或招领';
-    if (!String(form.category == null ? '' : form.category).trim()) errors.category = '请选择物品分类';
-    if (!String(form.location == null ? '' : form.location).trim()) errors.location = '请填写地点';
-    if (!String(form.time == null ? '' : form.time).trim()) errors.time = '请填写时间';
+
+    if (!category) errors.category = '请选择物品分类';
+
+    if (!location) errors.location = '请填写地点';
+    else if (location.length > LIMITS.location) errors.location = '地点不超过 ' + LIMITS.location + ' 个字';
+
+    if (!time) errors.time = '请填写时间';
+    else if (time.length > LIMITS.time) errors.time = '时间不超过 ' + LIMITS.time + ' 个字';
+
+    if (description.length > LIMITS.description) errors.description = '详细描述不超过 ' + LIMITS.description + ' 个字';
+
     return { ok: Object.keys(errors).length === 0, errors: errors };
   }
 
@@ -86,6 +109,7 @@
   }
 
   const Core = {
+    LIMITS: LIMITS,
     searchItems: searchItems,
     filterItems: filterItems,
     sortItems: sortItems,
