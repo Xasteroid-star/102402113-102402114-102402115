@@ -62,16 +62,14 @@
     function getFavs() { try { return JSON.parse(localStorage.getItem('favorites') || '[]'); } catch (e) { return []; } }
 
     function load() {
-      // 本机发布的（publisher=uid）+ 种子里的示例数据（publisher=demo）
-      Promise.all([
-        API.list({ publisher: myUid, status: 'all' }),
-        API.list({ publisher: 'demo', status: 'all' })
-      ]).then(function (res) {
-        allItems = res[0].concat(res[1]);
+      // 只查「本机匿名 uid 发布」的条目；status=all 表示含已解决的历史记录
+      // （首页默认 status=active，已解决的自动下架，这里仍可见）
+      API.list({ publisher: myUid, status: 'all' }).then(function (items) {
+        allItems = items;
         renderStats();
         renderList();
-      }).catch(function () {
-        listEl.innerHTML = '<div class="empty"><div class="empty-ico">⚠️</div><div class="empty-title">加载失败</div></div>';
+      }).catch(function (e) {
+        listEl.innerHTML = '<div class="empty"><div class="empty-ico">⚠️</div><div class="empty-title">加载失败</div><div class="empty-sub">' + Core.escapeHtml(e.message) + '</div></div>';
       });
     }
 
@@ -81,19 +79,25 @@
       document.getElementById('statFav').textContent = getFavs().length;
     }
 
+    // 状态标签：进行中 = 绿；已解决按 type 推导文案 —— lost→已找到，found→已归还
+    function statusTag(item) {
+      if (item.status === 'resolved') {
+        return '<span class="tag cat">' + Core.resolvedLabel(item.type) + '</span>';
+      }
+      return '<span class="tag found">进行中</span>';
+    }
+
     function myCard(item) {
       var typeTag = item.type === 'lost' ? '<span class="tag lost">寻物</span>' : '<span class="tag found">招领</span>';
-      var secTag = item.status === 'resolved'
-        ? '<span class="tag cat">已解决</span>'
-        : '<span class="tag cat">' + Core.escapeHtml(item.category) + '</span>';
-      var action = item.status === 'resolved'
-        ? ''
-        : '<button class="resolve-btn" data-id="' + item.id + '" data-type="' + item.type + '">标记' + Core.resolvedLabel(item.type) + '</button>';
+      var resolved = item.status === 'resolved';
+      var action = resolved
+        ? '<span class="resolve-done">已处理</span>'
+        : '<button class="resolve-btn" data-id="' + item.id + '" data-type="' + item.type + '" data-status="' + item.status + '">标记' + Core.resolvedLabel(item.type) + '</button>';
       return (
         '<div class="card">' +
           '<div class="' + UI.thumbClass(item) + '">' + UI.categoryIcon(item.category) + '</div>' +
           '<div class="body">' +
-            '<div class="top">' + typeTag + secTag + '</div>' +
+            '<div class="top">' + typeTag + statusTag(item) + '<span class="tag cat">' + Core.escapeHtml(item.category) + '</span></div>' +
             '<h3>' + Core.escapeHtml(item.title) + '</h3>' +
             '<div class="meta">' + Core.escapeHtml(item.location) + ' · ' + Core.escapeHtml(item.time) + '</div>' +
           '</div>' +
@@ -109,19 +113,33 @@
         return true;
       });
       if (!items.length) {
-        listEl.innerHTML = '<div class="empty"><div class="empty-ico">📭</div><div class="empty-title">暂无相关发布</div><div class="empty-sub">去发布第一条信息吧</div></div>';
+        listEl.innerHTML = '<div class="empty"><div class="empty-ico">📭</div><div class="empty-title">暂无相关发布</div><div class="empty-sub">还没有发布过信息？<br><a href="publish.html" style="color:var(--green-d);font-weight:600">去发布第一条 ›</a></div></div>';
         return;
       }
-      listEl.innerHTML = items.map(myCard).join('');
+      listEl.innerHTML = items.map(function (it) { return myCard(it); }).join('');
       listEl.querySelectorAll('.resolve-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-          var id = btn.dataset.id;
-          var label = Core.resolvedLabel(btn.dataset.type);
-          API.resolve(id).then(function () {
-            UI.toast('已标记为「' + label + '」');
-            load();
-          }).catch(function (e) { UI.toast(e.message); });
-        });
+        btn.addEventListener('click', function () { onResolve(btn); });
+      });
+    }
+
+    // 标记已找到 / 已归还 → PATCH /api/items/:id {status:'resolved'} → 自动下架
+    function onResolve(btn) {
+      if (btn.disabled) return;                       // 防重复点击
+      var id = btn.dataset.id;
+      var label = Core.resolvedLabel(btn.dataset.type);
+      if (btn.dataset.status === 'resolved') {        // 已被处理过（例如另一个标签页标记了）
+        UI.toast('该条已处理');
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = '处理中…';
+      API.resolve(id).then(function () {
+        UI.toast('已标记为「' + label + '」，已自动下架');
+        load();                                       // 重新拉取，按钮随状态更新消失
+      }).catch(function (e) {
+        btn.disabled = false;                         // 失败要还原，让用户能重试
+        btn.textContent = '标记' + label;
+        UI.toast(e.message || '操作失败，请稍后重试');
       });
     }
 
