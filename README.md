@@ -15,7 +15,7 @@
 ## 二、目录说明
 
 ```
-project3/
+102402113-102402114-102402115/
 ├── README.md              ← 本文件（目录说明 + 使用说明 + 测试 + API 约定）
 ├── server.js              ← Node 后端：静态服务 + REST API + JSON 持久化（零依赖）
 ├── package.json           ← 零依赖；start / test 脚本
@@ -49,7 +49,6 @@ project3/
 ### 2. 启动服务
 
 ```bash
-cd project3
 node server.js        # 等价于 npm start
 ```
 
