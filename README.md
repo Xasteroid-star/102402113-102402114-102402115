@@ -64,21 +64,13 @@ node server.js        # 等价于 npm start
 ```bash
 npm test
 ```
+> Windows PowerShell 用户如果遇到“禁止运行脚本”错误,可改用 `npm.cmd test`,或先执行:
+> ```powershell
+> Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+> ```
 
-### 4. 重置数据
 
-数据持久化在 `data/items.json`，重启服务不会丢失。想恢复到初始种子数据：
-
-```bash
-# Windows (PowerShell / cmd)
-del data\items.json
-# Git Bash / macOS / Linux
-rm data/items.json
-```
-
-删除后重新 `node server.js`，服务会自动重建该文件并写入种子数据。
-
-### 5. 更换端口 / 隔离数据（开发与测试用）
+### 4. 更换端口 / 隔离数据（开发与测试用）
 
 两个环境变量都可用，互不影响：
 
