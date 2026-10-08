@@ -56,7 +56,7 @@ node server.js        # 等价于 npm start
 
 ```
 校园失物招领「拾回」已启动：http://localhost:3000
-数据文件：D:\...\project3\data\items.json
+数据文件：D:\...\102402113-102402114-102402115\data\items.json
 ```
 
 ### 3. 运行单元测试
