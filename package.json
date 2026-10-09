@@ -1,10 +1,8 @@
 {
   "name": "campus-lost-and-found",
   "version": "1.0.0",
-  "description": "校园失物招领「拾回」—— 软件工程第二次结对作业（程序实现）",
-  "main": "server.js",
+  "description": "校园失物招领「拾回」—— 软件工程第二次结对作业（纯静态版，localStorage 持久化）",
   "scripts": {
-    "start": "node server.js",
     "test": "node --test \"tests/**/*.test.js\""
   },
   "engines": {

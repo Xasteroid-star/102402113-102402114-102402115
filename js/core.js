@@ -3,7 +3,7 @@
  * 浏览器：<script src="js/core.js"> 后使用全局 Core
  * Node：  const Core = require('./js/core.js')
  *
- * 这是整个项目可测试性的根基：后端 server.js 和前端页面复用同一套
+ * 这是整个项目可测试性的根基：数据层 api.js 和页面复用同一套
  * 搜索 / 筛选 / 排序 / 校验逻辑，单元测试也只需 require 本文件。
  */
 (function (root) {

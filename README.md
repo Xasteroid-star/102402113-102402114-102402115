@@ -3,6 +3,10 @@
 > 2026 秋软件工程第二次结对作业 —— 程序实现
 > 把散落在群聊里、转瞬即逝的失物信息，集中到一个可浏览、可搜索、可发布的网页入口。
 
+> ⚠️ **本版本为纯静态实现**（HTML + CSS + 原生 JavaScript + localStorage，**无后端、无 Node、无数据库**）。
+> 第六节「第三棒完成内容」记录的是**上一版 Node 后端**的开发过程，其中提到的 `server.js`、`/api/...`、
+> `DATA_FILE` 均已移除；同名功能现在由 `js/api.js` 直接读写浏览器 localStorage 实现，界面与交互完全一致。
+
 ## 一、功能
 
 - **浏览信息流**：首页按「全部 / 寻物 / 招领」筛选，按最新发布排序。
@@ -16,12 +20,9 @@
 
 ```
 102402113-102402114-102402115/
-├── README.md              ← 本文件（目录说明 + 使用说明 + 测试 + API 约定）
-├── server.js              ← Node 后端：静态服务 + REST API + JSON 持久化（零依赖）
-├── package.json           ← 零依赖；start / test 脚本
+├── README.md              ← 本文件（目录说明 + 使用说明 + 测试 + 存储说明）
+├── package.json           ← 仅 npm test 脚本（可选，跑单元测试用）
 ├── .gitignore             ← 忽略 package-lock.json 等
-├── data/
-│   └── items.json         ← 数据存储（含种子数据，缺失时自动生成）
 ├── index.html             ← 首页（信息流 + 筛选 + 排序）
 ├── search.html            ← 搜索页（历史 + 热门 + 结果高亮 + 空状态）
 ├── detail.html            ← 详情页（联系 + 一键复制 + 收藏 + 分享）
@@ -30,62 +31,56 @@
 ├── css/
 │   └── style.css          ← 公共样式（设计规范：主色 #0FA96B / 寻物琥珀 #F2994A）
 ├── js/
-│   ├── core.js            ← 纯函数（搜索/筛选/排序/校验/高亮/状态文案），前后端共用
-│   ├── api.js             ← 前端 fetch 封装（统一网络异常中文提示）
+│   ├── core.js            ← 纯函数（搜索/筛选/排序/校验/高亮/状态文案）
+│   ├── seed.js            ← 种子演示数据（首次打开灌入 localStorage，10 条）
+│   ├── api.js             ← 前端数据层（localStorage 读写，接口与原来一致）
 │   └── ui.js              ← 公共 UI 工具（卡片渲染/Toast/复制/uid）
 ├── assets/img/            ← 图片素材（当前用 emoji 图标占位）
 └── tests/
-    └── core.test.js       ← 单元测试（node:test，51 个用例，第三棒补充）
+    └── core.test.js       ← 单元测试（node:test，51 个用例）
 ```
 
-## 三、使用说明
+## 三、使用说明（测试人员请看这里）
 
-### 1. 环境要求
+### 1. 运行方式
 
-- **Node.js ≥ 18**（本项目在 Node v24 上实测通过，见 `package.json` 的 `engines`）。
-- 浏览器用 **谷歌 Chrome**（其他现代浏览器一般也可）。
-- **不需要 `npm install`**：项目零第三方依赖，`dependencies` / `devDependencies` 均为空。
+**不需要安装任何环境、不需要联网、不需要启动服务器。**
 
-### 2. 启动服务
+1. 把本项目所有文件下载到本地（保持目录结构不变）。
+2. 用 **谷歌浏览器（Chrome）** 打开 `index.html` 即可。
 
-```bash
-node server.js        # 等价于 npm start
-```
+> 本项目为**纯静态网页**（HTML + CSS + 原生 JavaScript），所有数据保存在浏览器本机
+> **localStorage**，因此不需要 Node.js、npm、数据库或后端服务。首次打开会自动载入
+> **10 条演示数据**，方便直接体验浏览与搜索。
 
-终端出现下面两行即启动成功，用 Chrome 打开 <http://localhost:3000>：
+### 2. 建议的体验顺序
 
-```
-校园失物招领「拾回」已启动：http://localhost:3000
-数据文件：D:\...\102402113-102402114-102402115\data\items.json
-```
+1. **首页**：切换「全部 / 寻物 / 招领」浏览信息流，点任意卡片进详情。
+2. **搜索**：输入关键词（如「校园卡」「钥匙」），看结果高亮与搜索历史 / 热门搜索。
+3. **详情**：查看地点 / 时间 / 描述，点「联系 TA」一键复制联系方式；点收藏。
+4. **发布**：点底部 ＋ 发布一条寻物 / 招领信息，看必填项校验与成功弹层。
+5. **我的发布**：看到刚发布的条目，点「标记已找到 / 已归还」→ 自动下架。
 
-### 3. 运行单元测试
+> 想重置数据：Chrome 按 F12 → Console 执行 `localStorage.removeItem('items')` 后刷新，
+> 会重新载入 10 条演示数据。
+
+### 3. 单元测试（可选，仅开发自测）
+
+纯函数测试用 Node 内置 `node:test`，**不影响**上面双击打开的运行方式：
 
 ```bash
 npm test
 ```
-> Windows PowerShell 用户如果遇到“禁止运行脚本”错误,可改用 `npm.cmd test`,或先执行:
+> Windows PowerShell 用户如果遇到“禁止运行脚本”错误，可改用 `npm.cmd test`，或先执行：
 > ```powershell
 > Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 > ```
-
-
-### 4. 更换端口 / 隔离数据（开发与测试用）
-
-两个环境变量都可用，互不影响：
-
-```bash
-PORT=8080 node server.js                        # 换端口 → http://localhost:8080
-DATA_FILE=/tmp/probe.json PORT=3456 node server.js   # 换端口 + 用临时数据文件跑，不碰真实数据
-```
-
-> 本项目的联调验证就是这么做的：始终让服务读写临时数据文件，保证仓库里的 `data/items.json` 全程未被测试污染。
 
 ## 四、单元测试
 
 ### 工具与运行方式
 
-用 **Node.js 内置的 `node:test` + `node:assert`**，无需 Mocha / Jest / Chai，**不引入任何第三方依赖**，也不用启动浏览器或后端服务。
+用 **Node.js 内置的 `node:test` + `node:assert`**，无需 Mocha / Jest / Chai，**不引入任何第三方依赖**，也不用启动浏览器。
 
 ```bash
 npm test
@@ -96,7 +91,7 @@ npm test
 
 ### 覆盖范围
 
-测试对象是 `js/core.js` —— 前后端共用的纯函数模块（无 DOM、无网络、无文件 IO），这也是整个项目可测试性的根基。
+测试对象是 `js/core.js` —— 纯函数模块（无 DOM、无网络、无文件 IO），这也是整个项目可测试性的根基。
 
 | 被测函数 | 用例数 | 验证内容 |
 | --- | --- | --- |
@@ -107,7 +102,7 @@ npm test
 | `highlight` | 9 | 高亮包裹、**不破坏 HTML 实体**、正则元字符不误伤、XSS 不注入 |
 | `validatePublish` | 9 | 各必填项缺失报错、非法 type 报错、长度上限的边界值 |
 | `resolvedLabel` | 2 | `lost`→已找到、`found`→已归还 |
-| 列表默认管线 | 5 | 复刻 `GET /api/items` 的 搜索→筛选→排序 全流程，含"已解决条目默认不下发" |
+| 列表默认管线 | 5 | 复刻列表的 搜索→筛选→排序 全流程，含"已解决条目默认不下发" |
 
 ### 测试数据构造策略
 
@@ -127,14 +122,17 @@ npm test
 ℹ fail 0
 ```
 
-## 五、API 约定
+## 五、数据存储（localStorage）
 
-| 方法 | 路径 | 说明 |
+本版本为纯静态网页，**没有后端、没有 REST API**。`js/api.js` 的四个方法改为读写浏览器
+`localStorage`（键 `items`），**对外接口保持不变**，页面逻辑零改动：
+
+| 方法 | 作用 | 说明 |
 | --- | --- | --- |
-| GET | `/api/items` | 列表；query：`type`(lost/found)、`category`、`q`(搜索)、`sort`(newest)、`publisher`(uid)、`status`(默认 active，排除已解决=自动下架；传 `all` 返回全部) |
-| GET | `/api/items/:id` | 详情 |
-| POST | `/api/items` | 发布；body 含 type/title/category/location/time/description/contact/publisher；服务端二次校验，非法返回 400 |
-| PATCH | `/api/items/:id` | 更新状态 `{status:"resolved"}`（标记已找到/已归还 → 自动下架） |
+| `API.list(params)` | 列表 | 支持 `type` / `category` / `q`(搜索) / `sort` / `publisher` / `status`；默认 `active`，已解决自动下架 |
+| `API.get(id)` | 详情 | 找不到时抛「未找到该条信息」 |
+| `API.publish(item)` | 发布 | 复用 `Core.validatePublish` 校验，非法返回 `{errors}` 逐项回填 |
+| `API.resolve(id)` | 更新状态 | 标记已找到 / 已归还 → `status:'resolved'` → 自动下架 |
 
 ### 数据模型
 
@@ -158,17 +156,23 @@ npm test
 ```
 
 「已找到 vs 已归还」由 `type` 推导：`lost`→已找到，`found`→已归还。
-「我的发布」无登录方案：前端首次访问生成匿名 `uid` 存 `localStorage`，发布时作为 `publisher` 上传；`my.html` 据此查询自己的条目。
+「我的发布」无登录方案：前端首次访问生成匿名 `uid` 存 `localStorage`，发布时作为
+`publisher` 写入；`my.html` 据此筛选本机发布的条目。
+
+> 注意：localStorage 是**每台浏览器各一份、互不相通**（纯前端方案，无共享服务器）。
+> 因此演示时每台电脑看到的是自己浏览器里的数据；「我的发布」只含本机发布条目。
 
 ## 六、第三棒完成内容（闭环 · 测试 · 收尾）
+
+> 本节为**上一版 Node 后端**的开发记录；纯静态版已把同样功能落到 localStorage，交互与文案不变。
 
 第三棒的目标是**把整条链路真正跑通并留下证据**：发布 → 浏览/搜索 → 详情 → 联系发布者 → 标记已找到/已归还 → 自动下架。
 
 ### 1. 闭环功能
 
-- **发布页 `publish.html`**：补齐全部字段与**逐项前端校验**（不再是提交后才看到后端 400）。校验规则集中在 `Core.validatePublish`，返回 `{字段名: 错误文案}`，前端把每条文案回填到对应输入框下方，并给输入框加 `.error` 高亮；后端 400 响应的 `errors` 结构完全一致，前端复用同一套回填逻辑。发布成功后弹层引导去「我的发布」或回首页；提交期间按钮置灰显示「发布中…」防重复提交；补上选填的昵称 / 学院。
-- **我的发布 `my.html`**：读 `localStorage` 里的匿名 `uid` 作为 `publisher`，请求 `GET /api/items?publisher=<uid>&status=all`（`all` 才会带上已解决的历史条目）。每条展示状态标签——进行中 / 已找到（lost）/ 已归还（found），文案由 `Core.resolvedLabel(type)` 推导。点「标记已找到/已归还」→ `PATCH /api/items/:id {status:"resolved"}`，成功后重新拉取列表；**失败会把按钮还原**，让用户能重试，而不是卡在「处理中…」。
-- **自动下架**：首页默认只请求 `status=active`，条目一旦标记为 `resolved` 就不再出现在信息流里，但仍保留在「我的发布」中可查。
+- **发布页 `publish.html`**：补齐全部字段与**逐项前端校验**（不再是提交后才看到后端 400）。校验规则集中在 `Core.validatePublish`，返回 `{字段名: 错误文案}`，前端把每条文案回填到对应输入框下方，并给输入框加 `.error` 高亮。发布成功后弹层引导去「我的发布」或回首页；提交期间按钮置灰显示「发布中…」防重复提交；补上选填的昵称 / 学院。
+- **我的发布 `my.html`**：读 `localStorage` 里的匿名 `uid` 作为 `publisher`，只展示本机发布的条目（`status=all` 才会带上已解决的历史条目）。每条展示状态标签——进行中 / 已找到（lost）/ 已归还（found），文案由 `Core.resolvedLabel(type)` 推导。点「标记已找到/已归还」→ 状态改为 `resolved`，成功后重新拉取列表；**失败会把按钮还原**，让用户能重试，而不是卡在「处理中…」。
+- **自动下架**：首页默认只保留 `status=active`，条目一旦标记为 `resolved` 就不再出现在信息流里，但仍保留在「我的发布」中可查。
 
 ### 2. 修复的缺陷
 
@@ -178,7 +182,7 @@ npm test
 | **首页标题里的 `'` 显示成 `&#39;`** | `items.map(UI.itemCard)` —— `map` 会把**数组下标**当作第二个参数 `keyword` 传进去。第 10 条（下标 9）命中关键词 `"9"`，`<mark>` 插进了转义产物 `&#39;` 中间，劈成 `&#3<mark>9</mark>;` | 写成 `items.map(function (it) { return UI.itemCard(it); })` |
 | **`Core.highlight` 同类实体劈开缺陷** | `highlight` 内部也是「先整体转义、再在转义结果里 replace」，与上一条是同一个 bug class。`highlight("张三'的雨伞", "39")` 会输出 `张三&#<mark>39</mark>;的雨伞` | 改为**先按关键词切分原文、再逐段转义并包 `<mark>`**，用捕获组让命中片段落在 `split` 结果的奇数下标上。XSS 防护不变（每段仍逐段 `escapeHtml`） |
 | **搜索页清空关键词后布局退化** | `defaultEl.style.display = ''` 会退化成 `block`，而该容器需要 `flex` | 显式写 `'flex'` |
-| **网络异常直接把英文抛给用户** | `fetch` 只在完全没连上时 reject，原始信息是 `Failed to fetch` | 在 `js/api.js` 统一包一层，翻译成「网络异常，请稍后重试」，四个页面同时受益 |
+| **网络异常直接把英文抛给用户** | `fetch` 只在完全没连上时 reject，原始信息是 `Failed to fetch` | 在数据层统一包一层，翻译成中文提示，四个页面同时受益（纯静态版无网络请求，此问题天然不存在） |
 | **连续改关键词时结果被旧响应覆盖** | 先发出的请求可能后返回 | 加 `searchToken` **竞态保护**，过期响应直接丢弃 |
 
 ### 3. 交互与异常兜底
@@ -194,11 +198,10 @@ npm test
 
 ### 5. 验证方式
 
-除单元测试外，本轮用 **Chrome DevTools Protocol 驱动真实 Chrome**（用 Node 内置 `WebSocket` 直连 `--remote-debugging-port`，仍然是零依赖）做了端到端取证，覆盖桌面 1200×900 与手机 390×844 两种视口：真实鼠标点击 11 张卡片逐一确认跳转、点击计数确认「连点 3 次只发出 1 个 POST / 1 个 PATCH」、断网后确认 Toast 文案且服务端状态未被改动。所有联调都在 `DATA_FILE` 指向临时文件、独立 Chrome 配置目录下进行，`data/items.json` 全程未被污染。
+除单元测试外，上一版用 **Chrome DevTools Protocol 驱动真实 Chrome**（零依赖）做了端到端取证，覆盖桌面 1200×900 与手机 390×844 两种视口：真实鼠标点击 11 张卡片逐一确认跳转、点击计数确认「连点 3 次只发出 1 次提交」、异常场景确认 Toast 文案且状态未被改动。纯静态版交互与文案不变，可据此复验。
 
 ## 七、协作分工（三棒接力）
 
-- **第一棒（基础框架 + 后端）**：项目骨架、数据模型、`core.js`、`server.js`（静态 + API + JSON 落盘）、公共 CSS、5 个页面骨架、`api.js`/`ui.js`。
+- **第一棒（基础框架 + 数据层）**：项目骨架、数据模型、`core.js`、公共 CSS、5 个页面骨架、`api.js`/`ui.js`。
 - **第二棒（页面与优化）**：首页、搜索、详情、收藏、分享、一键复制、搜索历史/热门搜索。
 - **第三棒（闭环收尾）**：发布页、我的发布、状态更新、自动下架、修复搜索页点击与高亮缺陷、单元测试、完善 README、汇总博客。
-
