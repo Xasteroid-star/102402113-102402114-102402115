@@ -1,12 +1,15 @@
 /* tests/core.test.js —— js/core.js 纯函数单元测试
  *
- * 运行：npm test        等价于 node --test tests/
+ * 运行：npm test        等价于 node --test 通配 tests 目录下所有 .test.js（见 package.json 的 test 脚本）
  * 工具：Node 内置测试运行器 node:test（Node 18+），零依赖、不装 Mocha / Jest。
  *       node:test 的用法与 Mocha 类似（describe/it 风格的 test() + 断言），
  *       但断言用 Node 自带的 node:assert，不需要任何 package.json 之外的依赖。
  *
- * 本文件只测纯函数：不碰 DOM、不发网络请求、不读文件，所以可以直接 require 后端共用的
+ * 本文件只测纯函数：不碰 DOM、不读 localStorage、不发请求，所以可以直接 require
  * js/core.js（core.js 在 Node 下走 module.exports，在浏览器下挂到 window.Core）。
+ * 页面与数据层（js/api.js）加载的是同一份 core.js，规则不可能不一致。
+ *
+ * 数据层本身（API.list / get / publish / resolve）另见 tests/api.test.js。
  */
 'use strict';
 
@@ -66,9 +69,10 @@ const RESOLVED = make({
 const NORMAL = [CARD, KEY, UMBRELLA, RESOLVED];
 
 /* ============================================================
- * 复刻 server.js 里 GET /api/items 的默认管线：
+ * 在纯函数层面复刻 js/api.js 里 API.list 的三段管线：
  * 搜索 → 筛选（status 缺省为 active，即"自动下架"）→ 排序
- * 这样"resolved 条目在默认列表中被排除"这条规则可以在纯函数层面被完整验证。
+ * 这样"resolved 条目在默认列表中被排除"这条规则不依赖浏览器就能被完整验证。
+ * 真正跑在页面上的 API.list 由 tests/api.test.js 直接测（配 localStorage 桩）。
  * ============================================================ */
 function listLike(items, query) {
   query = query || {};
@@ -397,7 +401,7 @@ describe('resolvedLabel 状态文案', () => {
 });
 
 /* ============================================================
- * 组合管线 —— 复刻 GET /api/items 的默认行为
+ * 组合管线 —— 复刻 API.list 的默认行为
  * ============================================================ */
 describe('列表默认管线（搜索 → 筛选 → 排序）', () => {
   test('resolved 条目在默认列表中被排除（自动下架）', () => {
