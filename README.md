@@ -37,7 +37,8 @@
 │   └── ui.js              ← 公共 UI 工具（卡片渲染/Toast/复制/uid）
 ├── assets/img/            ← 图片素材（当前用 emoji 图标占位）
 └── tests/
-    └── core.test.js       ← 单元测试（node:test，51 个用例）
+    ├── core.test.js       ← 纯函数单元测试（node:test，51 个用例）
+    └── api.test.js        ← 数据层单元测试（localStorage 桩，23 个用例）
 ```
 
 ## 三、使用说明（测试人员请看这里）
@@ -104,6 +105,18 @@ npm test
 | `resolvedLabel` | 2 | `lost`→已找到、`found`→已归还 |
 | 列表默认管线 | 5 | 复刻列表的 搜索→筛选→排序 全流程，含"已解决条目默认不下发" |
 
+`tests/api.test.js` 另测**数据层** `js/api.js`（23 个用例）：不起服务、不开浏览器，用一个内存
+`Map` 造 `localStorage` 桩，直接对真实数据层下断言。
+
+| 被测方法 / 场景 | 用例数 | 验证内容 |
+| --- | --- | --- |
+| 种子初始化 | 4 | 首次读取灌 10 条；坏 JSON 退回种子；本地已有数据不被种子覆盖 |
+| `API.list` | 7 | 默认 `active` 自动下架；`status=all` 看历史；type / category / publisher 组合筛选；排序；空库返回 `[]` |
+| `API.get` | 2 | 按 id 取到条目；不存在时 reject 404 且带中文提示 |
+| `API.publish` | 5 | 校验不通过不入库；合法表单落库且字段正确；去首尾空格；描述选填；超长被拦 |
+| `API.resolve` | 3 | 状态改 `resolved` 并持久化；不存在 reject 404；重复标记幂等 |
+| 闭环 | 2 | 发布 → 首页可见 → 标记 → 首页消失，且搜索也搜不到 |
+
 ### 测试数据构造策略
 
 用例按四类数据组织，都在 `tests/core.test.js` 顶部有说明：
@@ -116,11 +129,13 @@ npm test
 ### 当前结果
 
 ```
-ℹ tests 51
-ℹ suites 8
-ℹ pass 51
+ℹ tests 74
+ℹ suites 14
+ℹ pass 74
 ℹ fail 0
 ```
+
+（`core.test.js` 51 + `api.test.js` 23）
 
 ## 五、数据存储（localStorage）
 
@@ -194,7 +209,7 @@ npm test
 
 ### 4. 单元测试
 
-见上文「四、单元测试」—— `tests/core.test.js`，51 个用例，`npm test` 一次通过。
+见上文「四、单元测试」—— `tests/core.test.js`（51）+ `tests/api.test.js`（23）共 74 个用例，`npm test` 一次通过。
 
 ### 5. 验证方式
 
